@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -9,6 +20,10 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }
 
 .animate-fade-in {
@@ -31,19 +46,19 @@ input[type="range"]::-webkit-slider-runnable-track {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: 2px solid rgba(255, 255, 255, 0.3);
-  margin-top: -6px;
+  margin-top: -5px;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
   transition: transform 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
+  transform: scale(1.2);
 }
 
 input[type="range"]::-moz-range-track {
@@ -53,8 +68,8 @@ input[type="range"]::-moz-range-track {
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -64,7 +79,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -73,13 +88,23 @@ input[type="range"]::-moz-range-thumb {
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-html, body {
-  overflow-x: hidden;
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050510;
+}
+
+/* Canvas takes full space */
+canvas {
+  display: block;
 }
