@@ -37,6 +37,9 @@ export function Planet({
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
 
+  // Move useMemo OUTSIDE conditional rendering
+  const textTexture = useMemo(() => createTextTexture(name), [name]);
+
   useFrame((_, delta) => {
     if (isPlaying) {
       angleRef.current += speed * speedMultiplier * delta * 0.3;
@@ -108,11 +111,11 @@ export function Planet({
         </mesh>
       )}
 
-      {/* Planet name label */}
+      {/* Planet name label - now uses pre-computed texture */}
       {(isHovered || isSelected) && (
         <sprite position={[0, radius + 1.5, 0]} scale={[4, 1, 1]}>
           <spriteMaterial
-            map={useMemo(() => createTextTexture(name), [name])}
+            map={textTexture}
             transparent
           />
         </sprite>
