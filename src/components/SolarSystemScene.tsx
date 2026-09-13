@@ -1,9 +1,20 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
+import * as THREE from 'three';
 import { Sun } from './Sun';
 import { Planet } from './Planet';
 import { Orbit } from './Orbit';
+import {
+  createMercuryTexture,
+  createVenusTexture,
+  createEarthTexture,
+  createMarsTexture,
+  createJupiterTexture,
+  createSaturnTexture,
+  createUranusTexture,
+  createNeptuneTexture,
+} from '../utils/textures';
 
 export interface PlanetData {
   name: string;
@@ -151,10 +162,22 @@ function Scene({
     PLANETS.map(() => ({ current: Math.random() * Math.PI * 2 }))
   );
 
+  // Generate planet textures
+  const textures = useMemo(() => ({
+    Mercury: createMercuryTexture(),
+    Venus: createVenusTexture(),
+    Earth: createEarthTexture(),
+    Mars: createMarsTexture(),
+    Jupiter: createJupiterTexture(),
+    Saturn: createSaturnTexture(),
+    Uranus: createUranusTexture(),
+    Neptune: createNeptuneTexture(),
+  }), []);
+
   return (
     <>
       {/* Lighting - brighter in day mode */}
-      <ambientLight intensity={isDarkMode ? 0.08 : 0.5} />
+      <ambientLight intensity={isDarkMode ? 0.15 : 0.5} />
       
       {/* Additional light for day mode */}
       {!isDarkMode && (
@@ -166,9 +189,9 @@ function Scene({
         <Stars
           radius={300}
           depth={100}
-          count={8000}
-          factor={4}
-          saturation={0}
+          count={10000}
+          factor={5}
+          saturation={0.5}
           fade
           speed={0.5}
         />
@@ -198,6 +221,7 @@ function Scene({
             onHover={(h) => onHoverPlanet(h ? planet.name : null)}
             angleRef={angleRefs.current[i]}
             hasRings={planet.hasRings}
+            texture={textures[planet.name as keyof typeof textures]}
           />
         </group>
       ))}

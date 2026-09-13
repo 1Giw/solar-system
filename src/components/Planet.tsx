@@ -16,13 +16,13 @@ interface PlanetProps {
   onHover: (hovered: boolean) => void;
   angleRef: React.MutableRefObject<number>;
   hasRings?: boolean;
+  texture?: THREE.Texture;
 }
 
 export function Planet({
   name,
   radius,
   orbitRadius,
-  color,
   speed,
   isPlaying,
   speedMultiplier,
@@ -32,12 +32,12 @@ export function Planet({
   onHover,
   angleRef,
   hasRings,
+  texture,
 }: PlanetProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const atmosphereRef = useRef<THREE.Mesh>(null);
+  const cloudsRef = useRef<THREE.Mesh>(null);
 
-  // Move useMemo OUTSIDE conditional rendering
   const textTexture = useMemo(() => createTextTexture(name), [name]);
 
   useFrame((_, delta) => {
@@ -51,11 +51,14 @@ export function Planet({
     }
 
     if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.5;
+      // Different rotation speeds for different planets
+      const rotSpeed = name === 'Venus' ? -0.1 : 0.5; // Venus rotates backwards
+      meshRef.current.rotation.y += delta * rotSpeed;
     }
 
-    if (atmosphereRef.current) {
-      atmosphereRef.current.rotation.y += delta * 0.3;
+    // Clouds rotate slightly faster than planet
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y += delta * 0.6;
     }
   });
 
@@ -63,20 +66,7 @@ export function Planet({
 
   return (
     <group ref={groupRef}>
-      {/* Atmosphere glow for Earth, Venus, Jupiter, Saturn */}
-      {(name === 'Earth' || name === 'Venus' || name === 'Jupiter' || name === 'Saturn') && (
-        <mesh ref={atmosphereRef} scale={scale * 1.15}>
-          <sphereGeometry args={[radius, 32, 32]} />
-          <meshBasicMaterial
-            color={name === 'Earth' ? '#4b7bec' : color}
-            transparent
-            opacity={0.08}
-            side={THREE.BackSide}
-          />
-        </mesh>
-      )}
-
-      {/* Planet body with enhanced material */}
+      {/* Planet body with texture */}
       <mesh
         ref={meshRef}
         scale={scale}
@@ -95,62 +85,81 @@ export function Planet({
         }}
       >
         <sphereGeometry args={[radius, 64, 64]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={name === 'Earth' ? 0.6 : 0.8}
-          metalness={name === 'Mercury' ? 0.3 : 0.1}
-          emissive={color}
-          emissiveIntensity={0.05}
-        />
+        {texture ? (
+          <meshStandardMaterial
+            map={texture}
+            roughness={0.8}
+            metalness={0.1}
+          />
+        ) : (
+          <meshStandardMaterial
+            color="#888888"
+            roughness={0.8}
+            metalness={0.1}
+          />
+        )}
       </mesh>
 
-      {/* Selection/hover glow */}
-      {(isSelected || isHovered) && (
-        <mesh scale={scale * 1.4}>
+      {/* Cloud layer for Earth */}
+      {name === 'Earth' && (
+        <mesh ref={cloudsRef} scale={scale * 1.02}>
+          <sphereGeometry args={[radius, 64, 64]} />
+          <meshStandardMaterial
+            transparent
+            opacity={0.3}
+            color="#ffffff"
+            roughness={1}
+          />
+        </mesh>
+      )}
+
+      {/* Atmosphere glow */}
+      {(name === 'Earth' || name === 'Venus') && (
+        <mesh scale={scale * 1.08}>
           <sphereGeometry args={[radius, 32, 32]} />
           <meshBasicMaterial
-            color={isSelected ? '#ffd700' : '#ffffff'}
+            color={name === 'Earth' ? '#4b9fff' : '#ffcc66'}
             transparent
-            opacity={0.2}
+            opacity={0.12}
             side={THREE.BackSide}
           />
         </mesh>
       )}
 
-      {/* Saturn's rings - enhanced */}
+      {/* Selection/hover glow */}
+      {(isSelected || isHovered) && (
+        <mesh scale={scale * 1.35}>
+          <sphereGeometry args={[radius, 32, 32]} />
+          <meshBasicMaterial
+            color={isSelected ? '#ffd700' : '#ffffff'}
+            transparent
+            opacity={0.15}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Saturn's rings with texture */}
       {hasRings && (
         <group rotation={[Math.PI / 2.5, 0, 0]} scale={scale}>
-          {/* Inner ring */}
           <mesh>
-            <ringGeometry args={[radius * 1.4, radius * 1.7, 64]} />
+            <ringGeometry args={[radius * 1.4, radius * 2.3, 128]} />
             <meshStandardMaterial
               color="#d4b876"
               side={THREE.DoubleSide}
               transparent
-              opacity={0.8}
+              opacity={0.75}
               roughness={0.9}
             />
           </mesh>
-          {/* Middle ring */}
+          {/* Ring shadow/detail layer */}
           <mesh>
-            <ringGeometry args={[radius * 1.75, radius * 1.95, 64]} />
-            <meshStandardMaterial
-              color="#c9a867"
+            <ringGeometry args={[radius * 1.45, radius * 2.25, 128]} />
+            <meshBasicMaterial
+              color="#8b7355"
               side={THREE.DoubleSide}
               transparent
-              opacity={0.6}
-              roughness={0.9}
-            />
-          </mesh>
-          {/* Outer ring */}
-          <mesh>
-            <ringGeometry args={[radius * 2.0, radius * 2.2, 64]} />
-            <meshStandardMaterial
-              color="#b89968"
-              side={THREE.DoubleSide}
-              transparent
-              opacity={0.4}
-              roughness={0.9}
+              opacity={0.2}
             />
           </mesh>
         </group>
@@ -174,23 +183,20 @@ function createTextTexture(text: string): THREE.Texture {
   canvas.width = 256;
   canvas.height = 64;
   const ctx = canvas.getContext('2d')!;
-  
-  // Background
+
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(0, 0, 256, 64);
-  
-  // Border
+
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.lineWidth = 2;
   ctx.strokeRect(2, 2, 252, 60);
-  
-  // Text
+
   ctx.fillStyle = 'white';
   ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 128, 32);
-  
+
   const texture = new THREE.CanvasTexture(canvas);
   return texture;
 }

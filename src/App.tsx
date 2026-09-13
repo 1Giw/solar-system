@@ -6,7 +6,7 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true); // Dark mode default untuk tampilan terbaik
 
   const selectedData = PLANETS.find((p) => p.name === selectedPlanet) || null;
 
