@@ -4,15 +4,15 @@ import * as THREE from 'three';
 
 export function Sun() {
   const meshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+  const coronaRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.002;
     }
-    if (glowRef.current) {
+    if (coronaRef.current) {
       const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
-      glowRef.current.scale.set(scale, scale, scale);
+      coronaRef.current.scale.set(scale, scale, scale);
     }
   });
 
@@ -24,9 +24,9 @@ export function Sun() {
         <meshBasicMaterial color="#FDB813" />
       </mesh>
 
-      {/* Inner glow */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[5.5, 64, 64]} />
+      {/* Corona layer 1 */}
+      <mesh ref={coronaRef}>
+        <sphereGeometry args={[5.8, 64, 64]} />
         <meshBasicMaterial
           color="#FF8C00"
           transparent
@@ -34,19 +34,30 @@ export function Sun() {
         />
       </mesh>
 
-      {/* Outer glow */}
+      {/* Corona layer 2 */}
       <mesh>
-        <sphereGeometry args={[7, 64, 64]} />
+        <sphereGeometry args={[6.5, 64, 64]} />
         <meshBasicMaterial
-          color="#FF4500"
+          color="#FF6B00"
           transparent
-          opacity={0.1}
+          opacity={0.15}
         />
       </mesh>
 
-      {/* Point light from the sun */}
-      <pointLight color="#FDB813" intensity={3} distance={500} decay={0.5} />
-      <pointLight color="#FF8C00" intensity={1.5} distance={300} decay={1} />
+      {/* Outer glow */}
+      <mesh>
+        <sphereGeometry args={[8, 64, 64]} />
+        <meshBasicMaterial
+          color="#FF4500"
+          transparent
+          opacity={0.08}
+        />
+      </mesh>
+
+      {/* Point lights from the sun */}
+      <pointLight color="#FDB813" intensity={4} distance={500} decay={0.5} />
+      <pointLight color="#FF8C00" intensity={2} distance={300} decay={1} />
+      <pointLight color="#FF6B00" intensity={1} distance={200} decay={1.5} />
     </group>
   );
 }
