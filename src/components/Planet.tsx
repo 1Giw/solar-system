@@ -111,9 +111,9 @@ export function Planet({
             <meshStandardMaterial
               map={texture}
               bumpMap={bumpMap || null}
-              bumpScale={0.05}
-              roughness={0.7}
-              metalness={0.1}
+              bumpScale={name === 'Earth' ? 0.08 : 0.05}
+              roughness={name === 'Earth' ? 0.45 : 0.65}
+              metalness={name === 'Earth' ? 0.2 : 0.05}
             />
           ) : (
             <meshStandardMaterial
@@ -126,32 +126,34 @@ export function Planet({
 
         {/* Dynamic clouds for Earth */}
         {name === 'Earth' && cloudTexture && (
-          <mesh ref={cloudsRef} scale={scale * 1.025}>
+          <mesh ref={cloudsRef} scale={scale * 1.02}>
             <sphereGeometry args={[radius, 64, 64]} />
             <meshStandardMaterial
               map={cloudTexture}
               transparent
-              opacity={0.8}
+              opacity={0.85}
               depthWrite={false}
-              roughness={1}
+              roughness={0.9}
             />
           </mesh>
         )}
 
-        {/* Atmosphere glow effect */}
-        {(name === 'Earth' || name === 'Venus' || name === 'Neptune' || isSelected || isHovered) && (
-          <mesh scale={scale * (isSelected ? 1.18 : 1.08)}>
-            <sphereGeometry args={[radius, 32, 32]} />
+        {/* Atmosphere Rayleigh Horizon Glow */}
+        {(name === 'Earth' || name === 'Venus' || name === 'Neptune' || name === 'Mars' || isSelected || isHovered) && (
+          <mesh scale={scale * (isSelected ? 1.16 : 1.06)}>
+            <sphereGeometry args={[radius, 64, 64]} />
             <meshBasicMaterial
               color={
-                name === 'Earth' ? '#5da2ff' :
-                name === 'Venus' ? '#ffcc77' :
-                name === 'Neptune' ? '#4f75ff' :
-                isSelected ? '#ffd700' : '#ffffff'
+                name === 'Earth' ? '#38bdf8' :
+                name === 'Venus' ? '#fde047' :
+                name === 'Mars' ? '#f97316' :
+                name === 'Neptune' ? '#60a5fa' :
+                isSelected ? '#f59e0b' : '#ffffff'
               }
               transparent
-              opacity={isSelected ? 0.25 : 0.15}
+              opacity={isSelected ? 0.3 : 0.18}
               side={THREE.BackSide}
+              blending={THREE.AdditiveBlending}
             />
           </mesh>
         )}

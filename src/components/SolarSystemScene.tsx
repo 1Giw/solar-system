@@ -218,26 +218,24 @@ function Scene({
         );
 
         if (isTransitioning.current && targetPosRef.current && targetLookAtRef.current) {
-          // Recompute current desired target position relative to moving planet
           const dirFromSun = planetPos.clone().normalize();
-          const offsetDist = planet.radius * 3.2 + (planet.hasRings ? 4.0 : 1.5);
-          const heightOffset = planet.radius * 1.2 + (planet.hasRings ? 1.8 : 0.8);
+          const offsetDist = planet.radius * 2.5 + (planet.hasRings ? 3.5 : 1.2);
+          const heightOffset = planet.radius * 0.8 + (planet.hasRings ? 1.2 : 0.5);
 
           const curTargetPos = planetPos.clone().add(
             dirFromSun.multiplyScalar(offsetDist)
           ).add(new THREE.Vector3(0, heightOffset, 0));
 
-          camera.position.lerp(curTargetPos, 0.1);
+          camera.position.lerp(curTargetPos, 0.08);
           if (controlsRef.current) {
-            controlsRef.current.target.lerp(planetPos, 0.1);
+            controlsRef.current.target.lerp(planetPos, 0.08);
             controlsRef.current.update();
           }
 
-          if (camera.position.distanceTo(curTargetPos) < 0.2) {
+          if (camera.position.distanceTo(curTargetPos) < 0.1) {
             isTransitioning.current = false;
           }
         } else if (controlsRef.current && isPlaying) {
-          // Keep updating OrbitControls target as planet orbits Sun
           const prevTarget = controlsRef.current.target.clone();
           const deltaMove = planetPos.clone().sub(prevTarget);
           camera.position.add(deltaMove);
@@ -246,13 +244,13 @@ function Scene({
         }
       }
     } else if (isTransitioning.current && targetPosRef.current && targetLookAtRef.current) {
-      camera.position.lerp(targetPosRef.current, 0.1);
+      camera.position.lerp(targetPosRef.current, 0.08);
       if (controlsRef.current) {
-        controlsRef.current.target.lerp(targetLookAtRef.current, 0.1);
+        controlsRef.current.target.lerp(targetLookAtRef.current, 0.08);
         controlsRef.current.update();
       }
 
-      if (camera.position.distanceTo(targetPosRef.current) < 0.2) {
+      if (camera.position.distanceTo(targetPosRef.current) < 0.1) {
         isTransitioning.current = false;
       }
     }
@@ -276,8 +274,8 @@ function Scene({
         );
 
         const dirFromSun = planetPos.clone().normalize();
-        const offsetDist = planet.radius * 3.2 + (planet.hasRings ? 4.0 : 1.5);
-        const heightOffset = planet.radius * 1.2 + (planet.hasRings ? 1.8 : 0.8);
+        const offsetDist = planet.radius * 2.5 + (planet.hasRings ? 3.5 : 1.2);
+        const heightOffset = planet.radius * 0.8 + (planet.hasRings ? 1.2 : 0.5);
 
         targetPosRef.current = planetPos.clone().add(
           dirFromSun.multiplyScalar(offsetDist)
@@ -285,12 +283,22 @@ function Scene({
 
         targetLookAtRef.current = planetPos.clone();
         isTransitioning.current = true;
+
+        if (controlsRef.current) {
+          controlsRef.current.minDistance = planet.radius * 1.05;
+          controlsRef.current.maxDistance = planet.radius * 25;
+        }
       }
     } else {
       // General solar system overview
       targetPosRef.current = new THREE.Vector3(0, 65, 100);
       targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
       isTransitioning.current = true;
+
+      if (controlsRef.current) {
+        controlsRef.current.minDistance = 1;
+        controlsRef.current.maxDistance = 280;
+      }
     }
   }, [cameraTarget]);
 
