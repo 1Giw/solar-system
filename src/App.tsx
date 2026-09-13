@@ -214,12 +214,26 @@ export default function App() {
           </div>
 
           <div className="pointer-events-auto flex gap-2">
-            <button
-              onClick={() => setCameraTarget(null)}
-              className="bg-black/60 backdrop-blur-md rounded-lg px-4 py-2 border border-gray-800 text-gray-300 hover:text-white hover:bg-black/80 transition-all text-sm"
-            >
-              Overview
-            </button>
+            {selectedPlanet && (
+              <button
+                onClick={() => {
+                  setSelectedPlanet(null);
+                  setCameraTarget(null);
+                }}
+                className="bg-blue-600/80 backdrop-blur-md rounded-lg px-4 py-2 border border-blue-500/50 text-white hover:bg-blue-600 transition-all text-sm flex items-center gap-2"
+              >
+                <span>←</span>
+                <span>Back to Overview</span>
+              </button>
+            )}
+            {!selectedPlanet && (
+              <button
+                onClick={() => setCameraTarget(null)}
+                className="bg-black/60 backdrop-blur-md rounded-lg px-4 py-2 border border-gray-800 text-gray-300 hover:text-white hover:bg-black/80 transition-all text-sm"
+              >
+                Overview
+              </button>
+            )}
             <button
               onClick={() => setShowLabels(!showLabels)}
               className={`backdrop-blur-md rounded-lg px-4 py-2 border transition-all text-sm ${
@@ -233,61 +247,83 @@ export default function App() {
           </div>
         </div>
 
-        {/* Planet Info Panel - Right Side */}
+        {/* Planet Info Panel - Right Side (Zoom View) */}
         {selectedData && (
-          <div className="absolute top-20 right-4 z-10 w-96 animate-slide-in">
-            <div className="bg-black/80 backdrop-blur-xl rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
-              {/* Header */}
+          <div className="absolute top-20 right-4 z-10 w-[420px] animate-slide-in">
+            <div className="bg-black/90 backdrop-blur-xl rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
+              {/* Header with Back Button */}
               <div className="p-5 border-b border-gray-800 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-16 h-16 rounded-full shadow-lg ring-2 ring-white/20"
-                      style={{
-                        background: `radial-gradient(circle at 30% 30%, ${lightenColor(selectedData.color, 50)}, ${selectedData.color})`,
-                      }}
-                    />
-                    <div>
-                      <h2 className="text-white font-bold text-2xl">{selectedData.name}</h2>
-                      <p className="text-gray-400 text-sm">
-                        {selectedData.moons !== undefined ? `${selectedData.moons} moon${selectedData.moons !== 1 ? 's' : ''}` : ''}
-                      </p>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
                   <button
-                    onClick={() => setSelectedPlanet(null)}
+                    onClick={() => {
+                      setSelectedPlanet(null);
+                      setCameraTarget(null);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-all text-sm"
+                  >
+                    <span>←</span>
+                    <span>Back to Overview</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedPlanet(null);
+                      setCameraTarget(null);
+                    }}
                     className="text-gray-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10"
                   >
                     ✕
                   </button>
                 </div>
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-20 h-20 rounded-full shadow-lg ring-2 ring-white/20"
+                    style={{
+                      background: `radial-gradient(circle at 30% 30%, ${lightenColor(selectedData.color, 50)}, ${selectedData.color})`,
+                    }}
+                  />
+                  <div>
+                    <h2 className="text-white font-bold text-3xl">{selectedData.name}</h2>
+                    <p className="text-gray-400 text-sm mt-1">
+                      {selectedData.moons !== undefined ? `${selectedData.moons} moon${selectedData.moons !== 1 ? 's' : ''}` : ''}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Content */}
-              <div className="p-5 space-y-4">
+              <div className="p-5 space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto">
                 {/* Description */}
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {selectedData.description}
-                </p>
+                <div>
+                  <h3 className="text-gray-400 text-xs font-semibold mb-2 uppercase tracking-wide">About</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {selectedData.description}
+                  </p>
+                </div>
 
                 {/* Fun Fact */}
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                  <p className="text-blue-400 text-xs font-semibold mb-1">💡 Fun Fact</p>
-                  <p className="text-blue-200 text-sm">{selectedData.funFact}</p>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <p className="text-blue-400 text-xs font-semibold mb-2 flex items-center gap-1">
+                    <span>💡</span> Fun Fact
+                  </p>
+                  <p className="text-blue-200 text-sm leading-relaxed">{selectedData.funFact}</p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <StatCard icon="📏" label="Diameter" value={selectedData.realDiameter} />
-                  <StatCard icon="☀️" label="Distance" value={selectedData.realDistance} />
-                  <StatCard icon="🔄" label="Orbital Period" value={selectedData.orbitalPeriod} />
-                  <StatCard icon="⚡" label="Speed" value={`${selectedData.speed.toFixed(3)}x`} />
+                <div>
+                  <h3 className="text-gray-400 text-xs font-semibold mb-3 uppercase tracking-wide">Physical Properties</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard icon="📏" label="Diameter" value={selectedData.realDiameter} />
+                    <StatCard icon="☀️" label="Distance from Sun" value={selectedData.realDistance} />
+                    <StatCard icon="🔄" label="Orbital Period" value={selectedData.orbitalPeriod} />
+                    <StatCard icon="⚡" label="Orbital Speed" value={`${selectedData.speed.toFixed(3)}x Earth`} />
+                  </div>
                 </div>
 
                 {/* Size Comparison */}
                 <div className="pt-3 border-t border-gray-800">
-                  <p className="text-gray-500 text-xs mb-2">Size relative to Earth</p>
-                  <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden">
+                  <h3 className="text-gray-400 text-xs font-semibold mb-3 uppercase tracking-wide">Size Comparison</h3>
+                  <p className="text-gray-500 text-xs mb-2">Relative to Earth</p>
+                  <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -296,9 +332,28 @@ export default function App() {
                       }}
                     />
                   </div>
-                  <p className="text-gray-400 text-xs mt-1">
+                  <p className="text-gray-400 text-sm mt-2 font-medium">
                     {getEarthRatio(selectedData.name).toFixed(2)}x Earth's diameter
                   </p>
+                </div>
+
+                {/* Quick Facts */}
+                <div className="pt-3 border-t border-gray-800">
+                  <h3 className="text-gray-400 text-xs font-semibold mb-3 uppercase tracking-wide">Quick Facts</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Type:</span>
+                      <span className="text-gray-300">{getPlanetType(selectedData.name)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Temperature:</span>
+                      <span className="text-gray-300">{getTemperature(selectedData.name)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Day Length:</span>
+                      <span className="text-gray-300">{getDayLength(selectedData.name)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -354,4 +409,46 @@ function getEarthRatio(name: string): number {
     Neptune: 3.88,
   };
   return ratios[name] || 1;
+}
+
+function getPlanetType(name: string): string {
+  const types: Record<string, string> = {
+    Mercury: 'Terrestrial',
+    Venus: 'Terrestrial',
+    Earth: 'Terrestrial',
+    Mars: 'Terrestrial',
+    Jupiter: 'Gas Giant',
+    Saturn: 'Gas Giant',
+    Uranus: 'Ice Giant',
+    Neptune: 'Ice Giant',
+  };
+  return types[name] || 'Unknown';
+}
+
+function getTemperature(name: string): string {
+  const temps: Record<string, string> = {
+    Mercury: '-180°C to 430°C',
+    Venus: '465°C (average)',
+    Earth: '-88°C to 58°C',
+    Mars: '-140°C to 20°C',
+    Jupiter: '-145°C (cloud top)',
+    Saturn: '-178°C (cloud top)',
+    Uranus: '-224°C (cloud top)',
+    Neptune: '-214°C (cloud top)',
+  };
+  return temps[name] || 'Unknown';
+}
+
+function getDayLength(name: string): string {
+  const days: Record<string, string> = {
+    Mercury: '59 Earth days',
+    Venus: '243 Earth days',
+    Earth: '24 hours',
+    Mars: '24.6 hours',
+    Jupiter: '9.9 hours',
+    Saturn: '10.7 hours',
+    Uranus: '17.2 hours',
+    Neptune: '16.1 hours',
+  };
+  return days[name] || 'Unknown';
 }

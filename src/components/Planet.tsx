@@ -115,14 +115,18 @@ export function Planet({
         </mesh>
       )}
 
-      {/* Atmosphere glow */}
-      {(name === 'Earth' || name === 'Venus') && (
-        <mesh scale={scale * 1.08}>
+      {/* Atmosphere glow - enhanced when selected */}
+      {(name === 'Earth' || name === 'Venus' || isSelected || isHovered) && (
+        <mesh scale={scale * (isSelected ? 1.15 : 1.08)}>
           <sphereGeometry args={[radius, 32, 32]} />
           <meshBasicMaterial
-            color={name === 'Earth' ? '#4b9fff' : '#ffcc66'}
+            color={
+              name === 'Earth' ? '#4b9fff' : 
+              name === 'Venus' ? '#ffcc66' :
+              isSelected ? '#ffd700' : '#ffffff'
+            }
             transparent
-            opacity={0.12}
+            opacity={isSelected ? 0.2 : 0.12}
             side={THREE.BackSide}
           />
         </mesh>

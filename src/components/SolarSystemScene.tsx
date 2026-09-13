@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Sun } from './Sun';
@@ -167,6 +167,9 @@ function Scene({
   );
 
   const { camera } = useThree();
+  const targetPosition = useRef<THREE.Vector3 | null>(null);
+  const targetLookAt = useRef<THREE.Vector3 | null>(null);
+  const isAnimating = useRef(false);
 
   // Generate planet textures
   const textures = useMemo(() => ({
@@ -180,11 +183,33 @@ function Scene({
     Neptune: createNeptuneTexture(),
   }), []);
 
+  // Smooth camera animation
+  useFrame(() => {
+    if (isAnimating.current && targetPosition.current && targetLookAt.current) {
+      const lerpFactor = 0.05; // Smooth transition speed
+      
+      camera.position.lerp(targetPosition.current, lerpFactor);
+      
+      const currentLookAt = new THREE.Vector3();
+      camera.getWorldDirection(currentLookAt);
+      currentLookAt.multiplyScalar(10).add(camera.position);
+      currentLookAt.lerp(targetLookAt.current, lerpFactor);
+      
+      camera.lookAt(targetLookAt.current);
+
+      // Check if animation is complete
+      if (camera.position.distanceTo(targetPosition.current) < 0.1) {
+        isAnimating.current = false;
+      }
+    }
+  });
+
   // Camera follow target
   useEffect(() => {
     if (cameraTarget === 'Sun') {
-      camera.position.set(0, 20, 30);
-      camera.lookAt(0, 0, 0);
+      targetPosition.current = new THREE.Vector3(0, 20, 30);
+      targetLookAt.current = new THREE.Vector3(0, 0, 0);
+      isAnimating.current = true;
     } else if (cameraTarget) {
       const planetIndex = PLANETS.findIndex(p => p.name === cameraTarget);
       if (planetIndex >= 0) {
@@ -192,12 +217,26 @@ function Scene({
         const angle = angleRefs.current[planetIndex].current;
         const x = Math.cos(angle) * planet.orbitRadius;
         const z = Math.sin(angle) * planet.orbitRadius;
-        const distance = planet.radius * 8;
-        camera.position.set(x + distance, distance * 0.5, z + distance);
-        camera.lookAt(x, 0, z);
+        
+        // Zoom distance based on planet size
+        const zoomDistance = planet.radius * 6;
+        const heightOffset = planet.radius * 2;
+        
+        targetPosition.current = new THREE.Vector3(
+          x + zoomDistance,
+          heightOffset,
+          z + zoomDistance
+        );
+        targetLookAt.current = new THREE.Vector3(x, 0, z);
+        isAnimating.current = true;
       }
+    } else {
+      // Overview mode
+      targetPosition.current = new THREE.Vector3(0, 60, 90);
+      targetLookAt.current = new THREE.Vector3(0, 0, 0);
+      isAnimating.current = true;
     }
-  }, [cameraTarget, camera]);
+  }, [cameraTarget]);
 
   return (
     <>
