@@ -17,6 +17,7 @@ interface PlanetProps {
   angleRef: React.MutableRefObject<number>;
   hasRings?: boolean;
   texture?: THREE.Texture;
+  showLabel?: boolean;
 }
 
 export function Planet({
@@ -33,6 +34,7 @@ export function Planet({
   angleRef,
   hasRings,
   texture,
+  showLabel = false,
 }: PlanetProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -165,8 +167,8 @@ export function Planet({
         </group>
       )}
 
-      {/* Planet name label */}
-      {(isHovered || isSelected) && (
+      {/* Planet name label - always visible if showLabel, or when hovered/selected */}
+      {(showLabel || isHovered || isSelected) && (
         <sprite position={[0, radius + 1.5, 0]} scale={[4, 1, 1]}>
           <spriteMaterial
             map={textTexture}
