@@ -9,7 +9,7 @@ interface OrbitProps {
 export function Orbit({ radius, isHighlighted }: OrbitProps) {
   const points = useMemo(() => {
     const pts: [number, number, number][] = [];
-    const segments = 128;
+    const segments = 180;
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2;
       pts.push([Math.cos(angle) * radius, 0, Math.sin(angle) * radius]);
@@ -20,10 +20,10 @@ export function Orbit({ radius, isHighlighted }: OrbitProps) {
   return (
     <Line
       points={points}
-      color={isHighlighted ? '#818cf8' : '#ffffff'}
-      lineWidth={isHighlighted ? 1.5 : 0.5}
+      color={isHighlighted ? '#38bdf8' : '#ffffff'}
+      lineWidth={isHighlighted ? 2.0 : 0.6}
       transparent
-      opacity={isHighlighted ? 0.6 : 0.15}
+      opacity={isHighlighted ? 0.75 : 0.18}
     />
   );
 }

@@ -12,7 +12,19 @@ export default function App() {
   const [simDate, setSimDate] = useState(new Date());
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Mobile menu / detail panel visibility state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(true);
+
   const selectedData = PLANETS.find((p) => p.name === selectedPlanet) || null;
+
+  const handleSelectPlanet = (planetName: string | null) => {
+    setSelectedPlanet(planetName);
+    setCameraTarget(planetName);
+    if (planetName) {
+      setIsMobileDetailOpen(true);
+    }
+  };
 
   const handleTimeChange = (direction: 'back' | 'forward') => {
     const newDate = new Date(simDate);
@@ -108,12 +120,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Main 3D View */}
-      <div className="flex-1 relative">
+      {/* Main Interactive 3D Viewport */}
+      <div className="flex-1 h-full relative overflow-hidden">
         <Suspense
           fallback={
-            <div className="w-full h-full flex items-center justify-center bg-black">
-              <div className="text-white text-lg animate-pulse">Loading Solar System...</div>
+            <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+              <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+              <div className="text-indigo-200 font-medium animate-pulse text-sm">Memuat Tata Surya 3D...</div>
             </div>
           }
         >
@@ -122,7 +135,7 @@ export default function App() {
             speedMultiplier={speed}
             selectedPlanet={selectedPlanet}
             hoveredPlanet={hoveredPlanet}
-            onSelectPlanet={setSelectedPlanet}
+            onSelectPlanet={(name) => handleSelectPlanet(name)}
             onHoverPlanet={setHoveredPlanet}
             showLabels={showLabels}
             showOrbits={showOrbits}
@@ -143,37 +156,18 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pointer-events-auto flex gap-2">
+          {/* Quick Return Controls */}
+          <div className="pointer-events-auto flex items-center gap-2">
             {selectedPlanet && (
               <button
-                onClick={() => {
-                  setSelectedPlanet(null);
-                  setCameraTarget(null);
-                }}
-                className="bg-blue-600/80 backdrop-blur-md rounded-lg px-4 py-2 border border-blue-500/50 text-white hover:bg-blue-600 transition-all text-sm flex items-center gap-2"
+                onClick={() => handleSelectPlanet(null)}
+                className="bg-indigo-600/90 hover:bg-indigo-600 text-white backdrop-blur-md rounded-xl px-4 py-2 text-xs font-semibold shadow-lg shadow-indigo-600/30 border border-indigo-400/30 transition-all flex items-center gap-1.5 active:scale-95"
               >
                 <span>←</span>
-                <span>Back to Overview</span>
+                <span className="hidden sm:inline">Kembali ke Overview</span>
+                <span className="sm:hidden">Kembali</span>
               </button>
             )}
-            {!selectedPlanet && (
-              <button
-                onClick={() => setCameraTarget(null)}
-                className="bg-black/60 backdrop-blur-md rounded-lg px-4 py-2 border border-gray-800 text-gray-300 hover:text-white hover:bg-black/80 transition-all text-sm"
-              >
-                Overview
-              </button>
-            )}
-            <button
-              onClick={() => setShowLabels(!showLabels)}
-              className={`backdrop-blur-md rounded-lg px-4 py-2 border transition-all text-sm ${
-                showLabels
-                  ? 'bg-blue-600/30 border-blue-500/50 text-blue-400'
-                  : 'bg-black/60 border-gray-800 text-gray-300 hover:text-white hover:bg-black/80'
-              }`}
-            >
-              Labels
-            </button>
           </div>
         </div>
 
@@ -629,12 +623,12 @@ function MobilePlanetInfo({ selectedData }: { selectedData: PlanetData }) {
 
 function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-lg">{icon}</span>
-        <span className="text-gray-400 text-xs">{label}</span>
+    <div className="bg-gray-900/60 rounded-xl p-2.5 border border-gray-800/80">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-sm">{icon}</span>
+        <span className="text-gray-400 text-[11px] truncate">{label}</span>
       </div>
-      <p className="text-white text-sm font-semibold">{value}</p>
+      <p className="text-white text-xs font-semibold truncate">{value}</p>
     </div>
   );
 }
@@ -676,42 +670,42 @@ function getEarthRatio(name: string): number {
 
 function getPlanetType(name: string): string {
   const types: Record<string, string> = {
-    Mercury: 'Terrestrial',
-    Venus: 'Terrestrial',
-    Earth: 'Terrestrial',
-    Mars: 'Terrestrial',
-    Jupiter: 'Gas Giant',
-    Saturn: 'Gas Giant',
-    Uranus: 'Ice Giant',
-    Neptune: 'Ice Giant',
+    Mercury: 'Terrestrial / Kebumian',
+    Venus: 'Terrestrial / Kebumian',
+    Earth: 'Terrestrial / Kebumian',
+    Mars: 'Terrestrial / Kebumian',
+    Jupiter: 'Raksasa Gas (Gas Giant)',
+    Saturn: 'Raksasa Gas (Gas Giant)',
+    Uranus: 'Raksasa Es (Ice Giant)',
+    Neptune: 'Raksasa Es (Ice Giant)',
   };
-  return types[name] || 'Unknown';
+  return types[name] || 'Tidak diketahui';
 }
 
 function getTemperature(name: string): string {
   const temps: Record<string, string> = {
-    Mercury: '-180°C to 430°C',
-    Venus: '465°C (average)',
-    Earth: '-88°C to 58°C',
-    Mars: '-140°C to 20°C',
-    Jupiter: '-145°C (cloud top)',
-    Saturn: '-178°C (cloud top)',
-    Uranus: '-224°C (cloud top)',
-    Neptune: '-214°C (cloud top)',
+    Mercury: '-180°C s/d 430°C',
+    Venus: '465°C (Sangat Panas)',
+    Earth: '-88°C s/d 58°C',
+    Mars: '-140°C s/d 20°C',
+    Jupiter: '-145°C',
+    Saturn: '-178°C',
+    Uranus: '-224°C',
+    Neptune: '-214°C',
   };
-  return temps[name] || 'Unknown';
+  return temps[name] || 'Tidak diketahui';
 }
 
 function getDayLength(name: string): string {
   const days: Record<string, string> = {
-    Mercury: '59 Earth days',
-    Venus: '243 Earth days',
-    Earth: '24 hours',
-    Mars: '24.6 hours',
-    Jupiter: '9.9 hours',
-    Saturn: '10.7 hours',
-    Uranus: '17.2 hours',
-    Neptune: '16.1 hours',
+    Mercury: '59 Hari Bumi',
+    Venus: '243 Hari Bumi',
+    Earth: '24 Jam',
+    Mars: '24.6 Jam',
+    Jupiter: '9.9 Jam',
+    Saturn: '10.7 Jam',
+    Uranus: '17.2 Jam',
+    Neptune: '16.1 Jam',
   };
-  return days[name] || 'Unknown';
+  return days[name] || 'Tidak diketahui';
 }

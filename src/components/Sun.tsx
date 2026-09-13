@@ -5,62 +5,54 @@ import { createSunTexture } from '../utils/textures';
 
 export function Sun() {
   const meshRef = useRef<THREE.Mesh>(null);
-  const coronaRef = useRef<THREE.Mesh>(null);
+  const innerCoronaRef = useRef<THREE.Mesh>(null);
+  const outerCoronaRef = useRef<THREE.Mesh>(null);
 
   const sunTexture = useMemo(() => createSunTexture(), []);
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y += 0.001;
+      meshRef.current.rotation.y += 0.0012;
     }
-    if (coronaRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.03;
-      coronaRef.current.scale.set(scale, scale, scale);
+    if (innerCoronaRef.current) {
+      const scale = 1 + Math.sin(state.clock.elapsedTime * 2.5) * 0.025;
+      innerCoronaRef.current.scale.set(scale, scale, scale);
+    }
+    if (outerCoronaRef.current) {
+      const scale = 1 + Math.cos(state.clock.elapsedTime * 1.8) * 0.04;
+      outerCoronaRef.current.scale.set(scale, scale, scale);
     }
   });
 
   return (
     <group>
-      {/* Sun core with texture */}
+      {/* Sun core */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[5, 64, 64]} />
         <meshBasicMaterial map={sunTexture} />
       </mesh>
 
-      {/* Corona layer 1 */}
-      <mesh ref={coronaRef}>
-        <sphereGeometry args={[5.6, 64, 64]} />
-        <meshBasicMaterial
-          color="#FF8C00"
-          transparent
-          opacity={0.25}
-        />
+      {/* Dynamic Inner Corona Layer */}
+      <mesh ref={innerCoronaRef}>
+        <sphereGeometry args={[5.5, 64, 64]} />
+        <meshBasicMaterial color="#ffaa00" transparent opacity={0.3} side={THREE.BackSide} />
       </mesh>
 
-      {/* Corona layer 2 */}
+      {/* Dynamic Middle Corona Layer */}
+      <mesh ref={outerCoronaRef}>
+        <sphereGeometry args={[6.3, 64, 64]} />
+        <meshBasicMaterial color="#ff6600" transparent opacity={0.18} side={THREE.BackSide} />
+      </mesh>
+
+      {/* Outer Atmosphere Glow */}
       <mesh>
-        <sphereGeometry args={[6.2, 64, 64]} />
-        <meshBasicMaterial
-          color="#FF6B00"
-          transparent
-          opacity={0.12}
-        />
+        <sphereGeometry args={[7.8, 64, 64]} />
+        <meshBasicMaterial color="#ff3300" transparent opacity={0.08} side={THREE.BackSide} />
       </mesh>
 
-      {/* Outer glow */}
-      <mesh>
-        <sphereGeometry args={[7.5, 64, 64]} />
-        <meshBasicMaterial
-          color="#FF4500"
-          transparent
-          opacity={0.06}
-        />
-      </mesh>
-
-      {/* Point lights from the sun */}
-      <pointLight color="#FDB813" intensity={4} distance={500} decay={0.5} />
-      <pointLight color="#FF8C00" intensity={2} distance={300} decay={1} />
-      <pointLight color="#FF6B00" intensity={1} distance={200} decay={1.5} />
+      {/* Sunlight sources */}
+      <pointLight color="#fff0d0" intensity={4.5} distance={600} decay={0.2} />
+      <pointLight color="#ff9900" intensity={2.0} distance={300} decay={0.8} />
     </group>
   );
 }

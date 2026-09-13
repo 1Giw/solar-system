@@ -1,18 +1,24 @@
 import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, Html } from '@react-three/drei';
+import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { Sun } from './Sun';
 import { Planet } from './Planet';
 import { Orbit } from './Orbit';
 import {
   createMercuryTexture,
+  createMercuryBumpMap,
   createVenusTexture,
   createEarthTexture,
+  createEarthBumpMap,
+  createEarthCloudTexture,
   createMarsTexture,
+  createMarsBumpMap,
   createJupiterTexture,
   createSaturnTexture,
+  createSaturnRingTexture,
   createUranusTexture,
+  createUranusRingTexture,
   createNeptuneTexture,
 } from '../utils/textures';
 
@@ -34,7 +40,7 @@ export interface PlanetData {
 export const PLANETS: PlanetData[] = [
   {
     name: 'Mercury',
-    radius: 0.5,
+    radius: 0.6,
     orbitRadius: 12,
     color: '#8c7853',
     realDiameter: '4,879 km',
@@ -47,7 +53,7 @@ export const PLANETS: PlanetData[] = [
   },
   {
     name: 'Venus',
-    radius: 0.9,
+    radius: 0.95,
     orbitRadius: 18,
     color: '#c9a867',
     realDiameter: '12,104 km',
@@ -73,7 +79,7 @@ export const PLANETS: PlanetData[] = [
   },
   {
     name: 'Mars',
-    radius: 0.7,
+    radius: 0.75,
     orbitRadius: 33,
     color: '#c1440e',
     realDiameter: '6,792 km',
@@ -86,8 +92,8 @@ export const PLANETS: PlanetData[] = [
   },
   {
     name: 'Jupiter',
-    radius: 3.0,
-    orbitRadius: 50,
+    radius: 2.8,
+    orbitRadius: 48,
     color: '#c88b3a',
     realDiameter: '142,984 km',
     realDistance: '778.6 million km',
@@ -99,8 +105,8 @@ export const PLANETS: PlanetData[] = [
   },
   {
     name: 'Saturn',
-    radius: 2.5,
-    orbitRadius: 68,
+    radius: 2.3,
+    orbitRadius: 65,
     color: '#e8c880',
     realDiameter: '120,536 km',
     realDistance: '1,433.5 million km',
@@ -113,21 +119,22 @@ export const PLANETS: PlanetData[] = [
   },
   {
     name: 'Uranus',
-    radius: 1.7,
-    orbitRadius: 85,
+    radius: 1.6,
+    orbitRadius: 82,
     color: '#73c6d6',
     realDiameter: '51,118 km',
     realDistance: '2,872.5 million km',
     orbitalPeriod: '84.01 years',
     speed: 0.012,
+    hasRings: true,
     moons: 28,
     description: 'The ice giant that rotates on its side with a 98° tilt. Its blue-green color comes from methane in the atmosphere.',
     funFact: 'Uranus was the first planet discovered using a telescope, in 1781.',
   },
   {
     name: 'Neptune',
-    radius: 1.6,
-    orbitRadius: 100,
+    radius: 1.5,
+    orbitRadius: 96,
     color: '#3742fa',
     realDiameter: '49,528 km',
     realDistance: '4,495.1 million km',
@@ -167,11 +174,12 @@ function Scene({
   );
 
   const { camera } = useThree();
-  const targetPosition = useRef<THREE.Vector3 | null>(null);
-  const targetLookAt = useRef<THREE.Vector3 | null>(null);
-  const isAnimating = useRef(false);
+  const controlsRef = useRef<any>(null);
+  const targetPosRef = useRef<THREE.Vector3 | null>(null);
+  const targetLookAtRef = useRef<THREE.Vector3 | null>(null);
+  const isTransitioning = useRef(false);
 
-  // Generate planet textures
+  // Textures and Bump Maps
   const textures = useMemo(() => ({
     Mercury: createMercuryTexture(),
     Venus: createVenusTexture(),
@@ -183,81 +191,125 @@ function Scene({
     Neptune: createNeptuneTexture(),
   }), []);
 
-  // Smooth camera animation
-  useFrame(() => {
-    if (isAnimating.current && targetPosition.current && targetLookAt.current) {
-      const lerpFactor = 0.05; // Smooth transition speed
-      
-      camera.position.lerp(targetPosition.current, lerpFactor);
-      
-      const currentLookAt = new THREE.Vector3();
-      camera.getWorldDirection(currentLookAt);
-      currentLookAt.multiplyScalar(10).add(camera.position);
-      currentLookAt.lerp(targetLookAt.current, lerpFactor);
-      
-      camera.lookAt(targetLookAt.current);
+  const bumpMaps = useMemo(() => ({
+    Mercury: createMercuryBumpMap(),
+    Earth: createEarthBumpMap(),
+    Mars: createMarsBumpMap(),
+  }), []);
 
-      // Check if animation is complete
-      if (camera.position.distanceTo(targetPosition.current) < 0.1) {
-        isAnimating.current = false;
+  const cloudTexture = useMemo(() => createEarthCloudTexture(), []);
+
+  const ringTextures = useMemo(() => ({
+    Saturn: createSaturnRingTexture(),
+    Uranus: createUranusRingTexture(),
+  }), []);
+
+  // Smooth camera interpolation & orbit tracking
+  useFrame(() => {
+    if (cameraTarget && cameraTarget !== 'Sun') {
+      const planetIndex = PLANETS.findIndex((p) => p.name === cameraTarget);
+      if (planetIndex >= 0) {
+        const planet = PLANETS[planetIndex];
+        const angle = angleRefs.current[planetIndex].current;
+        const planetPos = new THREE.Vector3(
+          Math.cos(angle) * planet.orbitRadius,
+          0,
+          Math.sin(angle) * planet.orbitRadius
+        );
+
+        if (isTransitioning.current && targetPosRef.current && targetLookAtRef.current) {
+          // Recompute current desired target position relative to moving planet
+          const dirFromSun = planetPos.clone().normalize();
+          const offsetDist = planet.radius * 3.2 + (planet.hasRings ? 4.0 : 1.5);
+          const heightOffset = planet.radius * 1.2 + (planet.hasRings ? 1.8 : 0.8);
+
+          const curTargetPos = planetPos.clone().add(
+            dirFromSun.multiplyScalar(offsetDist)
+          ).add(new THREE.Vector3(0, heightOffset, 0));
+
+          camera.position.lerp(curTargetPos, 0.1);
+          if (controlsRef.current) {
+            controlsRef.current.target.lerp(planetPos, 0.1);
+            controlsRef.current.update();
+          }
+
+          if (camera.position.distanceTo(curTargetPos) < 0.2) {
+            isTransitioning.current = false;
+          }
+        } else if (controlsRef.current && isPlaying) {
+          // Keep updating OrbitControls target as planet orbits Sun
+          const prevTarget = controlsRef.current.target.clone();
+          const deltaMove = planetPos.clone().sub(prevTarget);
+          camera.position.add(deltaMove);
+          controlsRef.current.target.copy(planetPos);
+          controlsRef.current.update();
+        }
+      }
+    } else if (isTransitioning.current && targetPosRef.current && targetLookAtRef.current) {
+      camera.position.lerp(targetPosRef.current, 0.1);
+      if (controlsRef.current) {
+        controlsRef.current.target.lerp(targetLookAtRef.current, 0.1);
+        controlsRef.current.update();
+      }
+
+      if (camera.position.distanceTo(targetPosRef.current) < 0.2) {
+        isTransitioning.current = false;
       }
     }
   });
 
-  // Camera follow target
+  // Camera Target change trigger
   useEffect(() => {
     if (cameraTarget === 'Sun') {
-      targetPosition.current = new THREE.Vector3(0, 20, 30);
-      targetLookAt.current = new THREE.Vector3(0, 0, 0);
-      isAnimating.current = true;
+      targetPosRef.current = new THREE.Vector3(0, 10, 18);
+      targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
+      isTransitioning.current = true;
     } else if (cameraTarget) {
-      const planetIndex = PLANETS.findIndex(p => p.name === cameraTarget);
+      const planetIndex = PLANETS.findIndex((p) => p.name === cameraTarget);
       if (planetIndex >= 0) {
         const planet = PLANETS[planetIndex];
         const angle = angleRefs.current[planetIndex].current;
-        const x = Math.cos(angle) * planet.orbitRadius;
-        const z = Math.sin(angle) * planet.orbitRadius;
-        
-        // Zoom distance based on planet size
-        const zoomDistance = planet.radius * 6;
-        const heightOffset = planet.radius * 2;
-        
-        targetPosition.current = new THREE.Vector3(
-          x + zoomDistance,
-          heightOffset,
-          z + zoomDistance
+        const planetPos = new THREE.Vector3(
+          Math.cos(angle) * planet.orbitRadius,
+          0,
+          Math.sin(angle) * planet.orbitRadius
         );
-        targetLookAt.current = new THREE.Vector3(x, 0, z);
-        isAnimating.current = true;
+
+        const dirFromSun = planetPos.clone().normalize();
+        const offsetDist = planet.radius * 3.2 + (planet.hasRings ? 4.0 : 1.5);
+        const heightOffset = planet.radius * 1.2 + (planet.hasRings ? 1.8 : 0.8);
+
+        targetPosRef.current = planetPos.clone().add(
+          dirFromSun.multiplyScalar(offsetDist)
+        ).add(new THREE.Vector3(0, heightOffset, 0));
+
+        targetLookAtRef.current = planetPos.clone();
+        isTransitioning.current = true;
       }
     } else {
-      // Overview mode
-      targetPosition.current = new THREE.Vector3(0, 60, 90);
-      targetLookAt.current = new THREE.Vector3(0, 0, 0);
-      isAnimating.current = true;
+      // General solar system overview
+      targetPosRef.current = new THREE.Vector3(0, 65, 100);
+      targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
+      isTransitioning.current = true;
     }
   }, [cameraTarget]);
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={0.25} />
 
-      {/* Stars background */}
       <Stars
         radius={300}
         depth={100}
-        count={10000}
-        factor={5}
+        count={12000}
+        factor={6}
         saturation={0.5}
         fade
-        speed={0.5}
+        speed={0.4}
       />
 
-      {/* Sun */}
       <Sun />
 
-      {/* Orbits and Planets */}
       {PLANETS.map((planet, i) => (
         <group key={planet.name}>
           {showOrbits && (
@@ -281,19 +333,21 @@ function Scene({
             angleRef={angleRefs.current[i]}
             hasRings={planet.hasRings}
             texture={textures[planet.name as keyof typeof textures]}
+            bumpMap={bumpMaps[planet.name as keyof typeof bumpMaps]}
+            cloudTexture={planet.name === 'Earth' ? cloudTexture : undefined}
+            ringTexture={ringTextures[planet.name as keyof typeof ringTextures]}
             showLabel={showLabels}
           />
         </group>
       ))}
 
-      {/* Camera controls */}
       <OrbitControls
+        ref={controlsRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={15}
-        maxDistance={250}
-        autoRotate={false}
+        minDistance={1}
+        maxDistance={280}
         makeDefault
       />
     </>
@@ -325,9 +379,9 @@ export default function SolarSystemScene({
 }: SolarSystemSceneProps) {
   return (
     <Canvas
-      camera={{ position: [0, 60, 90], fov: 55, near: 0.1, far: 1000 }}
-      style={{ background: '#000000' }}
-      gl={{ antialias: true }}
+      camera={{ position: [0, 65, 100], fov: 50, near: 0.1, far: 1000 }}
+      style={{ background: '#02040a' }}
+      gl={{ antialias: true, alpha: false }}
     >
       <Scene
         isPlaying={isPlaying}
