@@ -16,13 +16,14 @@ interface PlanetProps {
   onHover: (hovered: boolean) => void;
   angleRef: React.MutableRefObject<number>;
   hasRings?: boolean;
+  texture?: THREE.Texture;
+  showLabel?: boolean;
 }
 
 export function Planet({
   name,
   radius,
   orbitRadius,
-  color,
   speed,
   isPlaying,
   speedMultiplier,
@@ -32,12 +33,13 @@ export function Planet({
   onHover,
   angleRef,
   hasRings,
+  texture,
+  showLabel = false,
 }: PlanetProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+  const cloudsRef = useRef<THREE.Mesh>(null);
 
-  // Move useMemo OUTSIDE conditional rendering
   const textTexture = useMemo(() => createTextTexture(name), [name]);
 
   useFrame((_, delta) => {
@@ -51,7 +53,14 @@ export function Planet({
     }
 
     if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.5;
+      // Different rotation speeds for different planets
+      const rotSpeed = name === 'Venus' ? -0.1 : 0.5; // Venus rotates backwards
+      meshRef.current.rotation.y += delta * rotSpeed;
+    }
+
+    // Clouds rotate slightly faster than planet
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y += delta * 0.6;
     }
   });
 
@@ -59,19 +68,7 @@ export function Planet({
 
   return (
     <group ref={groupRef}>
-      {/* Selection/hover glow */}
-      {(isSelected || isHovered) && (
-        <mesh ref={glowRef} scale={scale * 1.5}>
-          <sphereGeometry args={[radius, 32, 32]} />
-          <meshBasicMaterial
-            color={isSelected ? '#ffff66' : '#ffffff'}
-            transparent
-            opacity={0.15}
-          />
-        </mesh>
-      )}
-
-      {/* Planet body */}
+      {/* Planet body with texture */}
       <mesh
         ref={meshRef}
         scale={scale}
@@ -89,30 +86,93 @@ export function Planet({
           document.body.style.cursor = 'default';
         }}
       >
-        <sphereGeometry args={[radius, 32, 32]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.7}
-          metalness={0.1}
-        />
+        <sphereGeometry args={[radius, 64, 64]} />
+        {texture ? (
+          <meshStandardMaterial
+            map={texture}
+            roughness={0.8}
+            metalness={0.1}
+          />
+        ) : (
+          <meshStandardMaterial
+            color="#888888"
+            roughness={0.8}
+            metalness={0.1}
+          />
+        )}
       </mesh>
 
-      {/* Saturn's rings */}
-      {hasRings && (
-        <mesh rotation={[Math.PI / 2.5, 0, 0]} scale={scale}>
-          <ringGeometry args={[radius * 1.4, radius * 2.2, 64]} />
+      {/* Cloud layer for Earth */}
+      {name === 'Earth' && (
+        <mesh ref={cloudsRef} scale={scale * 1.02}>
+          <sphereGeometry args={[radius, 64, 64]} />
           <meshStandardMaterial
-            color="#d4b876"
-            side={THREE.DoubleSide}
             transparent
-            opacity={0.7}
-            roughness={0.8}
+            opacity={0.3}
+            color="#ffffff"
+            roughness={1}
           />
         </mesh>
       )}
 
-      {/* Planet name label - now uses pre-computed texture */}
-      {(isHovered || isSelected) && (
+      {/* Atmosphere glow - enhanced when selected */}
+      {(name === 'Earth' || name === 'Venus' || isSelected || isHovered) && (
+        <mesh scale={scale * (isSelected ? 1.15 : 1.08)}>
+          <sphereGeometry args={[radius, 32, 32]} />
+          <meshBasicMaterial
+            color={
+              name === 'Earth' ? '#4b9fff' : 
+              name === 'Venus' ? '#ffcc66' :
+              isSelected ? '#ffd700' : '#ffffff'
+            }
+            transparent
+            opacity={isSelected ? 0.2 : 0.12}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Selection/hover glow */}
+      {(isSelected || isHovered) && (
+        <mesh scale={scale * 1.35}>
+          <sphereGeometry args={[radius, 32, 32]} />
+          <meshBasicMaterial
+            color={isSelected ? '#ffd700' : '#ffffff'}
+            transparent
+            opacity={0.15}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Saturn's rings with texture */}
+      {hasRings && (
+        <group rotation={[Math.PI / 2.5, 0, 0]} scale={scale}>
+          <mesh>
+            <ringGeometry args={[radius * 1.4, radius * 2.3, 128]} />
+            <meshStandardMaterial
+              color="#d4b876"
+              side={THREE.DoubleSide}
+              transparent
+              opacity={0.75}
+              roughness={0.9}
+            />
+          </mesh>
+          {/* Ring shadow/detail layer */}
+          <mesh>
+            <ringGeometry args={[radius * 1.45, radius * 2.25, 128]} />
+            <meshBasicMaterial
+              color="#8b7355"
+              side={THREE.DoubleSide}
+              transparent
+              opacity={0.2}
+            />
+          </mesh>
+        </group>
+      )}
+
+      {/* Planet name label - always visible if showLabel, or when hovered/selected */}
+      {(showLabel || isHovered || isSelected) && (
         <sprite position={[0, radius + 1.5, 0]} scale={[4, 1, 1]}>
           <spriteMaterial
             map={textTexture}
@@ -129,13 +189,20 @@ function createTextTexture(text: string): THREE.Texture {
   canvas.width = 256;
   canvas.height = 64;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'transparent';
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(0, 0, 256, 64);
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(2, 2, 252, 60);
+
   ctx.fillStyle = 'white';
   ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 128, 32);
+
   const texture = new THREE.CanvasTexture(canvas);
   return texture;
 }

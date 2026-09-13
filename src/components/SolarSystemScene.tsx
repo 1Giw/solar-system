@@ -1,9 +1,20 @@
-import { useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import { useRef, useMemo, useEffect } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { OrbitControls, Stars, Html } from '@react-three/drei';
+import * as THREE from 'three';
 import { Sun } from './Sun';
 import { Planet } from './Planet';
 import { Orbit } from './Orbit';
+import {
+  createMercuryTexture,
+  createVenusTexture,
+  createEarthTexture,
+  createMarsTexture,
+  createJupiterTexture,
+  createSaturnTexture,
+  createUranusTexture,
+  createNeptuneTexture,
+} from '../utils/textures';
 
 export interface PlanetData {
   name: string;
@@ -15,6 +26,7 @@ export interface PlanetData {
   orbitalPeriod: string;
   speed: number;
   description: string;
+  funFact: string;
   hasRings?: boolean;
   moons?: number;
 }
@@ -24,49 +36,53 @@ export const PLANETS: PlanetData[] = [
     name: 'Mercury',
     radius: 0.5,
     orbitRadius: 12,
-    color: '#b5b5b5',
+    color: '#8c7853',
     realDiameter: '4,879 km',
     realDistance: '57.9 million km',
     orbitalPeriod: '88 days',
     speed: 4.15,
     moons: 0,
-    description: 'The smallest planet and closest to the Sun. Surface temperatures range from -180°C to 430°C.',
+    description: 'The smallest planet and closest to the Sun. Its surface is covered in craters like our Moon. Temperatures swing wildly from -180°C at night to 430°C during the day.',
+    funFact: 'A year on Mercury is just 88 Earth days, but a single day lasts 59 Earth days!',
   },
   {
     name: 'Venus',
     radius: 0.9,
     orbitRadius: 18,
-    color: '#e8cda0',
+    color: '#c9a867',
     realDiameter: '12,104 km',
     realDistance: '108.2 million km',
     orbitalPeriod: '225 days',
     speed: 1.62,
     moons: 0,
-    description: 'The hottest planet with a thick toxic atmosphere of CO₂. It rotates backwards compared to most planets.',
+    description: 'The hottest planet in our solar system with surface temperatures of 465°C. Its thick atmosphere of CO₂ creates a runaway greenhouse effect.',
+    funFact: 'Venus rotates backwards and a day there is longer than its year!',
   },
   {
     name: 'Earth',
     radius: 1.0,
     orbitRadius: 25,
-    color: '#4da6ff',
+    color: '#4b7bec',
     realDiameter: '12,756 km',
     realDistance: '149.6 million km',
     orbitalPeriod: '365.25 days',
     speed: 1.0,
     moons: 1,
-    description: 'Our home planet! The only known planet with liquid water on its surface and confirmed life.',
+    description: 'Our beautiful home planet! The only known world with liquid water on its surface and confirmed life. 71% of the surface is covered by oceans.',
+    funFact: 'Earth is the only planet not named after a Greek or Roman god!',
   },
   {
     name: 'Mars',
     radius: 0.7,
     orbitRadius: 33,
-    color: '#e04a2f',
+    color: '#c1440e',
     realDiameter: '6,792 km',
     realDistance: '227.9 million km',
     orbitalPeriod: '687 days',
     speed: 0.53,
     moons: 2,
-    description: 'The Red Planet with the tallest volcano (Olympus Mons - 21.9 km) and deepest canyon in the solar system.',
+    description: 'The Red Planet, colored by iron oxide (rust) on its surface. Home to Olympus Mons, the tallest volcano in the solar system (21.9 km high).',
+    funFact: 'Mars has two small moons named Phobos and Deimos, meaning "Fear" and "Terror".',
   },
   {
     name: 'Jupiter',
@@ -78,44 +94,48 @@ export const PLANETS: PlanetData[] = [
     orbitalPeriod: '11.86 years',
     speed: 0.084,
     moons: 95,
-    description: 'The largest planet. Its Great Red Spot is a storm larger than Earth that has raged for centuries.',
+    description: 'The king of planets! Jupiter is so massive that all other planets could fit inside it. Its Great Red Spot is a giant storm larger than Earth.',
+    funFact: 'Jupiter has the shortest day of all planets - it rotates once every 10 hours!',
   },
   {
     name: 'Saturn',
     radius: 2.5,
     orbitRadius: 68,
-    color: '#e8d590',
+    color: '#e8c880',
     realDiameter: '120,536 km',
     realDistance: '1,433.5 million km',
     orbitalPeriod: '29.46 years',
     speed: 0.034,
     hasRings: true,
     moons: 146,
-    description: 'Famous for its stunning ring system made of ice and rock particles. It is the least dense planet.',
+    description: 'The jewel of the solar system with its spectacular ring system made of billions of ice and rock particles. Saturn is so light it would float in water!',
+    funFact: 'Saturn\'s rings are only about 10 meters thick but stretch 282,000 km from the planet!',
   },
   {
     name: 'Uranus',
     radius: 1.7,
     orbitRadius: 85,
-    color: '#7de8e8',
+    color: '#73c6d6',
     realDiameter: '51,118 km',
     realDistance: '2,872.5 million km',
     orbitalPeriod: '84.01 years',
     speed: 0.012,
     moons: 28,
-    description: 'An ice giant that rotates on its side (98° tilt). Blue-green color comes from methane in its atmosphere.',
+    description: 'The ice giant that rotates on its side with a 98° tilt. Its blue-green color comes from methane in the atmosphere.',
+    funFact: 'Uranus was the first planet discovered using a telescope, in 1781.',
   },
   {
     name: 'Neptune',
     radius: 1.6,
     orbitRadius: 100,
-    color: '#3f54ba',
+    color: '#3742fa',
     realDiameter: '49,528 km',
     realDistance: '4,495.1 million km',
     orbitalPeriod: '164.8 years',
     speed: 0.006,
     moons: 16,
-    description: 'The windiest planet with speeds up to 2,100 km/h. Deep blue color and the farthest planet from the Sun.',
+    description: 'The windiest planet with supersonic winds reaching 2,100 km/h. Neptune\'s deep blue color comes from methane.',
+    funFact: 'Neptune was predicted to exist mathematically before it was observed!',
   },
 ];
 
@@ -126,6 +146,9 @@ interface SceneProps {
   hoveredPlanet: string | null;
   onSelectPlanet: (name: string | null) => void;
   onHoverPlanet: (name: string | null) => void;
+  showLabels: boolean;
+  showOrbits: boolean;
+  cameraTarget: string | null;
 }
 
 function Scene({
@@ -135,23 +158,98 @@ function Scene({
   hoveredPlanet,
   onSelectPlanet,
   onHoverPlanet,
+  showLabels,
+  showOrbits,
+  cameraTarget,
 }: SceneProps) {
   const angleRefs = useRef<React.MutableRefObject<number>[]>(
     PLANETS.map(() => ({ current: Math.random() * Math.PI * 2 }))
   );
 
+  const { camera } = useThree();
+  const targetPosition = useRef<THREE.Vector3 | null>(null);
+  const targetLookAt = useRef<THREE.Vector3 | null>(null);
+  const isAnimating = useRef(false);
+
+  // Generate planet textures
+  const textures = useMemo(() => ({
+    Mercury: createMercuryTexture(),
+    Venus: createVenusTexture(),
+    Earth: createEarthTexture(),
+    Mars: createMarsTexture(),
+    Jupiter: createJupiterTexture(),
+    Saturn: createSaturnTexture(),
+    Uranus: createUranusTexture(),
+    Neptune: createNeptuneTexture(),
+  }), []);
+
+  // Smooth camera animation
+  useFrame(() => {
+    if (isAnimating.current && targetPosition.current && targetLookAt.current) {
+      const lerpFactor = 0.05; // Smooth transition speed
+      
+      camera.position.lerp(targetPosition.current, lerpFactor);
+      
+      const currentLookAt = new THREE.Vector3();
+      camera.getWorldDirection(currentLookAt);
+      currentLookAt.multiplyScalar(10).add(camera.position);
+      currentLookAt.lerp(targetLookAt.current, lerpFactor);
+      
+      camera.lookAt(targetLookAt.current);
+
+      // Check if animation is complete
+      if (camera.position.distanceTo(targetPosition.current) < 0.1) {
+        isAnimating.current = false;
+      }
+    }
+  });
+
+  // Camera follow target
+  useEffect(() => {
+    if (cameraTarget === 'Sun') {
+      targetPosition.current = new THREE.Vector3(0, 20, 30);
+      targetLookAt.current = new THREE.Vector3(0, 0, 0);
+      isAnimating.current = true;
+    } else if (cameraTarget) {
+      const planetIndex = PLANETS.findIndex(p => p.name === cameraTarget);
+      if (planetIndex >= 0) {
+        const planet = PLANETS[planetIndex];
+        const angle = angleRefs.current[planetIndex].current;
+        const x = Math.cos(angle) * planet.orbitRadius;
+        const z = Math.sin(angle) * planet.orbitRadius;
+        
+        // Zoom distance based on planet size
+        const zoomDistance = planet.radius * 6;
+        const heightOffset = planet.radius * 2;
+        
+        targetPosition.current = new THREE.Vector3(
+          x + zoomDistance,
+          heightOffset,
+          z + zoomDistance
+        );
+        targetLookAt.current = new THREE.Vector3(x, 0, z);
+        isAnimating.current = true;
+      }
+    } else {
+      // Overview mode
+      targetPosition.current = new THREE.Vector3(0, 60, 90);
+      targetLookAt.current = new THREE.Vector3(0, 0, 0);
+      isAnimating.current = true;
+    }
+  }, [cameraTarget]);
+
   return (
     <>
       {/* Lighting */}
-      <ambientLight intensity={0.08} />
+      <ambientLight intensity={0.15} />
 
       {/* Stars background */}
       <Stars
         radius={300}
         depth={100}
-        count={8000}
-        factor={4}
-        saturation={0}
+        count={10000}
+        factor={5}
+        saturation={0.5}
         fade
         speed={0.5}
       />
@@ -162,10 +260,12 @@ function Scene({
       {/* Orbits and Planets */}
       {PLANETS.map((planet, i) => (
         <group key={planet.name}>
-          <Orbit
-            radius={planet.orbitRadius}
-            isHighlighted={selectedPlanet === planet.name || hoveredPlanet === planet.name}
-          />
+          {showOrbits && (
+            <Orbit
+              radius={planet.orbitRadius}
+              isHighlighted={selectedPlanet === planet.name || hoveredPlanet === planet.name}
+            />
+          )}
           <Planet
             name={planet.name}
             radius={planet.radius}
@@ -180,6 +280,8 @@ function Scene({
             onHover={(h) => onHoverPlanet(h ? planet.name : null)}
             angleRef={angleRefs.current[i]}
             hasRings={planet.hasRings}
+            texture={textures[planet.name as keyof typeof textures]}
+            showLabel={showLabels}
           />
         </group>
       ))}
@@ -205,6 +307,9 @@ interface SolarSystemSceneProps {
   hoveredPlanet: string | null;
   onSelectPlanet: (name: string | null) => void;
   onHoverPlanet: (name: string | null) => void;
+  showLabels: boolean;
+  showOrbits: boolean;
+  cameraTarget: string | null;
 }
 
 export default function SolarSystemScene({
@@ -214,14 +319,14 @@ export default function SolarSystemScene({
   hoveredPlanet,
   onSelectPlanet,
   onHoverPlanet,
+  showLabels,
+  showOrbits,
+  cameraTarget,
 }: SolarSystemSceneProps) {
   return (
     <Canvas
       camera={{ position: [0, 60, 90], fov: 55, near: 0.1, far: 1000 }}
-      style={{ background: '#050510' }}
-      onClick={() => {
-        // Deselect when clicking empty space
-      }}
+      style={{ background: '#000000' }}
       gl={{ antialias: true }}
     >
       <Scene
@@ -231,6 +336,9 @@ export default function SolarSystemScene({
         hoveredPlanet={hoveredPlanet}
         onSelectPlanet={onSelectPlanet}
         onHoverPlanet={onHoverPlanet}
+        showLabels={showLabels}
+        showOrbits={showOrbits}
+        cameraTarget={cameraTarget}
       />
     </Canvas>
   );
