@@ -6,37 +6,32 @@ export function CustomLoader() {
   const [show, setShow] = useState(true);
   const [displayProgress, setDisplayProgress] = useState(0);
 
-  // Smooth progress animation so percentage ticks up fluidly
+  // Smoothly update display progress so it never gets stuck at 0%
   useEffect(() => {
-    const currentRounded = Math.round(progress);
-    setDisplayProgress((prev) => {
-      if (currentRounded > prev) {
-        return currentRounded;
-      }
-      return prev;
-    });
+    const rounded = Math.round(progress);
+    setDisplayProgress((prev) => Math.max(prev, rounded));
   }, [progress]);
 
   // Fade out / hide after loading finishes
   useEffect(() => {
-    if (!active && progress >= 100) {
+    if (!active || progress >= 100) {
       const timer = setTimeout(() => {
         setShow(false);
-      }, 500);
+      }, 600);
       return () => clearTimeout(timer);
     } else {
       setShow(true);
     }
   }, [active, progress]);
 
-  if (!show && !active) return null;
+  if (!show && (!active || progress >= 100)) return null;
 
-  const roundedPercent = Math.min(100, Math.max(0, displayProgress || Math.round(progress)));
+  const currentPercent = Math.min(100, Math.max(0, displayProgress || Math.round(progress)));
 
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md transition-opacity duration-700 ${
-        !active && progress >= 100 ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        (!active || progress >= 100) ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
       {/* Background ambient glow */}
@@ -69,7 +64,7 @@ export function CustomLoader() {
         {/* Progress percentage text */}
         <div className="flex items-baseline gap-1 mb-3">
           <span className="text-5xl font-extrabold text-white font-mono tracking-tight">
-            {roundedPercent}
+            {currentPercent}
           </span>
           <span className="text-2xl font-semibold text-indigo-400">%</span>
         </div>
@@ -78,7 +73,7 @@ export function CustomLoader() {
         <div className="w-full bg-gray-900/90 border border-gray-800 rounded-full p-1 shadow-inner mb-4 relative overflow-hidden">
           <div
             className="h-3 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 ease-out shadow-lg shadow-indigo-500/50"
-            style={{ width: `${roundedPercent}%` }}
+            style={{ width: `${currentPercent}%` }}
           />
         </div>
 
@@ -87,7 +82,7 @@ export function CustomLoader() {
           <div className="text-gray-400 flex items-center gap-2">
             <span>Aset Dimuat:</span>
             <span className="font-mono font-semibold text-indigo-300">
-              {loaded} / {total > 0 ? total : 1}
+              {loaded} / {total > 0 ? total : 15}
             </span>
           </div>
           {item && (

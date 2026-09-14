@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,20 +6,8 @@ import { Sun } from './Sun';
 import { Planet } from './Planet';
 import { Orbit } from './Orbit';
 import {
-  createMercuryTexture,
-  createMercuryBumpMap,
-  createVenusTexture,
-  createEarthTexture,
-  createEarthBumpMap,
-  createEarthCloudTexture,
-  createMarsTexture,
-  createMarsBumpMap,
-  createJupiterTexture,
-  createSaturnTexture,
-  createSaturnRingTexture,
-  createUranusTexture,
-  createUranusRingTexture,
-  createNeptuneTexture,
+  loadSolarTexturesAsync,
+  GeneratedTextures,
 } from '../utils/textures';
 
 export interface PlanetData {
@@ -179,30 +167,25 @@ function Scene({
   const targetLookAtRef = useRef<THREE.Vector3 | null>(null);
   const isTransitioning = useRef(false);
 
-  // Textures and Bump Maps
-  const textures = useMemo(() => ({
-    Mercury: createMercuryTexture(),
-    Venus: createVenusTexture(),
-    Earth: createEarthTexture(),
-    Mars: createMarsTexture(),
-    Jupiter: createJupiterTexture(),
-    Saturn: createSaturnTexture(),
-    Uranus: createUranusTexture(),
-    Neptune: createNeptuneTexture(),
-  }), []);
+  const [solarTextures, setSolarTextures] = useState<GeneratedTextures | null>(null);
 
-  const bumpMaps = useMemo(() => ({
-    Mercury: createMercuryBumpMap(),
-    Earth: createEarthBumpMap(),
-    Mars: createMarsBumpMap(),
-  }), []);
+  useEffect(() => {
+    let isMounted = true;
+    loadSolarTexturesAsync().then((loaded) => {
+      if (isMounted) {
+        setSolarTextures(loaded);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const cloudTexture = useMemo(() => createEarthCloudTexture(), []);
+  if (!solarTextures) {
+    return null;
+  }
 
-  const ringTextures = useMemo(() => ({
-    Saturn: createSaturnRingTexture(),
-    Uranus: createUranusRingTexture(),
-  }), []);
+  const { textures, bumpMaps, cloudTexture, ringTextures } = solarTextures;
 
   // Smooth camera interpolation & orbit tracking
   useFrame(() => {
