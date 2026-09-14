@@ -181,12 +181,6 @@ function Scene({
     };
   }, []);
 
-  if (!solarTextures) {
-    return null;
-  }
-
-  const { textures, bumpMaps, cloudTexture, ringTextures } = solarTextures;
-
   // Smooth camera interpolation & orbit tracking
   useFrame(() => {
     if (cameraTarget && cameraTarget !== 'Sun') {
@@ -276,6 +270,12 @@ function Scene({
       isTransitioning.current = true;
     }
   }, [cameraTarget]);
+
+  if (!solarTextures) {
+    return null;
+  }
+
+  const { textures, bumpMaps, cloudTexture, ringTextures } = solarTextures;
 
   return (
     <>
