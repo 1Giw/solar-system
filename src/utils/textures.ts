@@ -113,6 +113,71 @@ export function createSunTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+export interface GeneratedTextures {
+  sun: THREE.CanvasTexture;
+  textures: Record<string, THREE.CanvasTexture>;
+  bumpMaps: Record<string, THREE.CanvasTexture>;
+  cloudTexture: THREE.CanvasTexture;
+  ringTextures: Record<string, THREE.CanvasTexture>;
+}
+
+export async function loadSolarTexturesAsync(): Promise<GeneratedTextures> {
+  const items = [
+    { id: 'texture://Sun', fn: () => createSunTexture(), key: 'sun' },
+    { id: 'texture://Mercury', fn: () => createMercuryTexture(), key: 'mercury' },
+    { id: 'texture://MercuryBump', fn: () => createMercuryBumpMap(), key: 'mercuryBump' },
+    { id: 'texture://Venus', fn: () => createVenusTexture(), key: 'venus' },
+    { id: 'texture://Earth', fn: () => createEarthTexture(), key: 'earth' },
+    { id: 'texture://EarthBump', fn: () => createEarthBumpMap(), key: 'earthBump' },
+    { id: 'texture://EarthClouds', fn: () => createEarthCloudTexture(), key: 'earthClouds' },
+    { id: 'texture://Mars', fn: () => createMarsTexture(), key: 'mars' },
+    { id: 'texture://MarsBump', fn: () => createMarsBumpMap(), key: 'marsBump' },
+    { id: 'texture://Jupiter', fn: () => createJupiterTexture(), key: 'jupiter' },
+    { id: 'texture://Saturn', fn: () => createSaturnTexture(), key: 'saturn' },
+    { id: 'texture://SaturnRing', fn: () => createSaturnRingTexture(), key: 'saturnRing' },
+    { id: 'texture://Uranus', fn: () => createUranusTexture(), key: 'uranus' },
+    { id: 'texture://UranusRing', fn: () => createUranusRingTexture(), key: 'uranusRing' },
+    { id: 'texture://Neptune', fn: () => createNeptuneTexture(), key: 'neptune' },
+  ];
+
+  // Start all items in DefaultLoadingManager
+  items.forEach((item) => THREE.DefaultLoadingManager.itemStart(item.id));
+
+  const results: Record<string, THREE.CanvasTexture> = {};
+
+  for (const item of items) {
+    // Yield to the browser render loop before generating each heavy texture
+    await new Promise((resolve) => setTimeout(resolve, 16));
+    const tex = item.fn();
+    results[item.key] = tex;
+    THREE.DefaultLoadingManager.itemEnd(item.id);
+  }
+
+  return {
+    sun: results.sun,
+    textures: {
+      Mercury: results.mercury,
+      Venus: results.venus,
+      Earth: results.earth,
+      Mars: results.mars,
+      Jupiter: results.jupiter,
+      Saturn: results.saturn,
+      Uranus: results.uranus,
+      Neptune: results.neptune,
+    },
+    bumpMaps: {
+      Mercury: results.mercuryBump,
+      Earth: results.earthBump,
+      Mars: results.marsBump,
+    },
+    cloudTexture: results.earthClouds,
+    ringTextures: {
+      Saturn: results.saturnRing,
+      Uranus: results.uranusRing,
+    },
+  };
+}
+
 /* ========================================================================
    MERCURY TEXTURE & BUMP
    ======================================================================== */
