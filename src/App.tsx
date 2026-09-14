@@ -1,5 +1,6 @@
 import { useState, Suspense } from 'react';
 import SolarSystemScene, { PLANETS, PlanetData } from './components/SolarSystemScene';
+import { CustomLoader } from './components/CustomLoader';
 
 export default function App() {
   const [isPlaying, setIsPlaying] = useState(true);
@@ -38,6 +39,7 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen bg-black overflow-hidden relative flex flex-col md:flex-row">
+      <CustomLoader />
       {/* Mobile Header */}
       <div className="md:hidden bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 p-3 flex items-center justify-between z-30">
         <button
